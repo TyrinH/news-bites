@@ -4,12 +4,14 @@ import fs from "fs";
 import { openAIApi } from "./aiSummarizer.js";
 
 let parser = new Parser();
+let article = [];
 
 const fetchArticles = async () => {
   let feed = await parser.parseURL("https://www.kmbc.com/topstories-rss");
-  console.log(feed.title);
+  // console.log(feed.title);
 
-  scrapeInfo(feed.items);
+  await scrapeInfo(feed.items);
+  return article;
 };
 
 const scrapeInfo = async (urls) => {
@@ -18,7 +20,7 @@ const scrapeInfo = async (urls) => {
 
   for (let i = 0; i < 1; i++) {
     const item = urls[i];
-    console.log(item.title + ":" + item.link);
+    // console.log(item.title + ":" + item.link);
     await page.goto(item.link);
 
     interface article {
@@ -30,7 +32,7 @@ const scrapeInfo = async (urls) => {
       guid?: string;
       pubDate?: string;
     }
-    const article = await page.$$eval(".article-content", (elements) =>
+    const newArticle = await page.$$eval(".article-content", (elements) =>
       elements.map((e: HTMLElement) => ({
         title: (e.querySelector(".article-headline--title") as HTMLElement)
           .innerText,
@@ -44,21 +46,22 @@ const scrapeInfo = async (urls) => {
       }))
     );
 
-    const summary = await openAIApi(article[0].content);
-    console.log("summary:", summary.data.choices[0].text);
-    article[0].summary = summary.data.choices[0].text;
-    article[0].link = item.link;
-    article[0].guid = item.guid;
-    article[0].pubDate = item.pubDate;
+    const summary = await openAIApi(newArticle[0].content);
+    // console.log("summary:", summary.data.choices[0].text);
+    newArticle[0].summary = summary.data.choices[0].text;
+    newArticle[0].link = item.link;
+    newArticle[0].guid = item.guid;
+    newArticle[0].pubDate = item.pubDate;
 
     fs.writeFile(
       `KMBC:${item.title}.json`,
-      JSON.stringify(article[0]),
+      JSON.stringify(newArticle[0]),
       (err) => {
         if (err) throw err;
-        console.log("FILE SAVED:", item.title);
+        // console.log("FILE SAVED:", item.title);
       }
     );
+    article = newArticle;
   }
   browser.close();
 };

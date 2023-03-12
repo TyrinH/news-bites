@@ -8,8 +8,9 @@ const app = express();
 app.use(express.urlencoded({ extended: true }));
 
 app.get("/fetchNewsArticles", async (req, res) => {
-  await fetchArticles();
-  res.send("done");
+  const newArticle = await fetchArticles();
+  console.log("newArticle:", newArticle);
+  res.send(newArticle);
 });
 
 app.listen(3000, () => {
